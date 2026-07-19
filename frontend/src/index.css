@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #FF8C42;
+  --color-primary-hover: #E67A2E;
+  --color-primary-light: #FFF0E5;
+  --color-bg: #FFFAF5;
+  --color-text: #3D2C1E;
+  --color-text-muted: #8C6E52;
+  --color-accent: #FF6B35;
+  --color-success: #7CB342;
+  --radius: 16px;
+  --shadow: 0 2px 8px rgba(230, 122, 46, 0.10);
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+.dark body {
+  background-color: #1a1410;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #FFB980;
+  border-radius: 3px;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-tangerine-500 text-white font-semibold px-6 py-3 rounded-xl
+           shadow-tangerine hover:bg-tangerine-600 active:scale-[0.97]
+           transition-all duration-200 cursor-pointer border-none;
+  }
+  .btn-secondary {
+    @apply bg-tangerine-100 text-tangerine-700 font-medium px-6 py-3 rounded-xl
+           hover:bg-tangerine-200 active:scale-[0.97]
+           transition-all duration-200 cursor-pointer border-none;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-tangerine p-5 border border-tangerine-100/50;
+  }
+  .metric-card {
+    @apply bg-tangerine-50 rounded-2xl p-4 flex flex-col gap-1;
+  }
+  .metric-value {
+    @apply text-2xl font-bold text-cocoa-900 font-mono;
+  }
+  .metric-label {
+    @apply text-sm text-cocoa-500;
+  }
+}
