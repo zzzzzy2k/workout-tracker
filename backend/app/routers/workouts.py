@@ -1,3 +1,4 @@
+from typing import Optional
 from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -51,17 +52,24 @@ def get_today(db: Session = Depends(get_db)):
 
 @router.get("", response_model=list[WorkoutSessionBrief])
 def list_sessions(
-    from_date: date = Query(alias="from"),
-    to_date: date = Query(alias="to"),
+    from_date: Optional[date] = Query(None, alias="from"),
+    to_date: Optional[date] = Query(None, alias="to"),
+    search: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
-    sessions = (
+    query = (
         db.query(WorkoutSession)
         .options(joinedload(WorkoutSession.logs))
-        .filter(WorkoutSession.date >= from_date, WorkoutSession.date <= to_date)
-        .order_by(WorkoutSession.date.desc())
-        .all()
     )
+    if from_date and to_date:
+        query = query.filter(WorkoutSession.date >= from_date, WorkoutSession.date <= to_date)
+    elif from_date:
+        query = query.filter(WorkoutSession.date >= from_date)
+    elif to_date:
+        query = query.filter(WorkoutSession.date <= to_date)
+    if search and search.strip():
+        query = query.filter(WorkoutSession.note.ilike(f"%{search.strip()}%"))
+    sessions = query.order_by(WorkoutSession.date.desc()).all()
     result = []
     for s in sessions:
         total_vol = sum(l.sets * l.reps * l.weight_kg for l in s.logs)

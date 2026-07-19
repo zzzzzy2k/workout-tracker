@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, PenLine, Dumbbell, ClipboardList } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Plus, Trash2, PenLine } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/client";
 
@@ -79,11 +79,6 @@ export default function WorkoutLogPage() {
     }
   };
 
-  const updateNote = async (sessionId: number, note: string) => {
-    await api.put(`/workouts/${sessionId}`, { note });
-    fetchToday();
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -137,29 +132,14 @@ export default function WorkoutLogPage() {
       {sessions.map((session) => (
         <div key={session.id} className="card space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex-1">
-              {session.note ? (
-                <input
-                  className="font-semibold text-cocoa-900 bg-transparent border-none outline-none w-full"
-                  defaultValue={session.note}
-                  onBlur={(e) => updateNote(session.id, e.target.value)}
-                />
-              ) : (
-                <button
-                  onClick={() => updateNote(session.id, "训练")}
-                  className="text-cocoa-400 text-sm flex items-center gap-1 hover:text-tangerine-500 transition-colors"
-                >
-                  <PenLine size={12} /> 添加备注
-                </button>
-              )}
-            </div>
+            <span className="font-bold text-sm text-cocoa-900">训练记录</span>
             <button onClick={() => deleteSession(session.id)} className="p-1 text-cocoa-300 hover:text-red-400 transition-colors">
               <Trash2 size={14} />
             </button>
           </div>
 
           {session.logs.length === 0 && (
-            <p className="text-cocoa-400 text-xs text-center py-4">点击下方添加动作</p>
+            <p className="text-cocoa-400 text-xs text-center py-2">点击下方按钮添加动作</p>
           )}
 
           {session.logs.map((log) => (
@@ -192,6 +172,8 @@ export default function WorkoutLogPage() {
             <Plus size={15} /> 添加动作
           </button>
 
+          <DiaryNote sessionId={session.id} initialNote={session.note || ""} onSaved={fetchToday} />
+
           {editingLog && (
             <EditLogModal
               logId={editingLog.logId}
@@ -207,6 +189,51 @@ export default function WorkoutLogPage() {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function DiaryNote({ sessionId, initialNote, onSaved }: {
+  sessionId: number;
+  initialNote: string;
+  onSaved: () => void;
+}) {
+  const [note, setNote] = useState(initialNote);
+  const [dirty, setDirty] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleChange = (val: string) => {
+    setNote(val);
+    setDirty(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        await api.put(`/workouts/${sessionId}`, { note: val });
+        setDirty(false);
+        onSaved();
+      } catch (err) {
+        console.error(err);
+      }
+    }, 800);
+  };
+
+  return (
+    <div className="pt-2 border-t border-tangerine-100/50">
+      <div className="flex items-center gap-1.5 mb-2">
+        <PenLine size={12} className="text-cocoa-400" />
+        <span className="text-xs text-cocoa-400 font-medium">训练心得</span>
+        {dirty && <span className="text-xs text-tangerine-400 animate-pulse">保存中...</span>}
+      </div>
+      <textarea
+        placeholder="今天感觉怎么样？有什么想记录的..."
+        value={note}
+        onChange={(e) => handleChange(e.target.value)}
+        rows={3}
+        className="w-full px-3 py-2.5 rounded-xl bg-tangerine-50/60 border border-tangerine-100/50
+                   text-sm text-cocoa-700 placeholder-cocoa-300 resize-y
+                   focus:outline-none focus:ring-2 focus:ring-tangerine-300 focus:border-transparent
+                   transition-all leading-relaxed"
+      />
     </div>
   );
 }
