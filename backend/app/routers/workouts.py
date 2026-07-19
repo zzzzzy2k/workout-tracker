@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
-from ..models import Exercise, WorkoutSession, WorkoutLog
+from ..models import Exercise, ExerciseTranslation, WorkoutSession, WorkoutLog
 from ..schemas import (
     WorkoutSessionCreate, WorkoutSessionUpdate, WorkoutSessionBrief,
     WorkoutSessionDetail, WorkoutLogCreate, WorkoutLogUpdate, WorkoutLogOut,
@@ -80,6 +80,54 @@ def list_sessions(
             total_volume_kg=round(total_vol, 1),
         ))
     return result
+
+
+@router.get("/{session_id}", response_model=WorkoutSessionDetail)
+def get_session(
+    session_id: int,
+    lang: str = Query("zh"),
+    db: Session = Depends(get_db),
+):
+    s = (
+        db.query(WorkoutSession)
+        .options(joinedload(WorkoutSession.logs).joinedload(WorkoutLog.exercise))
+        .filter(WorkoutSession.id == session_id)
+        .first()
+    )
+    if not s:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # 批量加载中文翻译
+    ex_ids = [l.exercise_id for l in s.logs if l.exercise_id]
+    tmap = {}
+    if lang != "en" and ex_ids:
+        trs = db.query(ExerciseTranslation).filter(ExerciseTranslation.exercise_id.in_(ex_ids)).all()
+        tmap = {t.exercise_id: t for t in trs}
+
+    logs = sorted(s.logs, key=lambda l: l.order)
+    out_logs = []
+    for l in logs:
+        ex = l.exercise
+        name = ex.name if ex else ""
+        if lang != "en":
+            tr = tmap.get(l.exercise_id)
+            if tr and tr.name:
+                name = tr.name
+        out_logs.append(WorkoutLogOut(
+            id=l.id,
+            exercise_id=l.exercise_id,
+            exercise_name=name,
+            sets=l.sets,
+            reps=l.reps,
+            weight_kg=l.weight_kg,
+            order=l.order,
+            gif_url=f"{MEDIA_BASE}/{ex.gif_path}" if ex and ex.gif_path else "",
+        ))
+
+    return WorkoutSessionDetail(
+        id=s.id, date=s.date, note=s.note, created_at=s.created_at,
+        logs=out_logs,
+    )
 
 
 @router.post("", response_model=WorkoutSessionDetail, status_code=201)

@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from ..database import get_db
-from ..models import Exercise, WorkoutSession, WorkoutLog
+from ..models import Exercise, ExerciseTranslation, WorkoutSession, WorkoutLog
 from ..schemas import StatsOverview, VolumeTrend, PersonalRecord
+from ..translate import translate_body_part
 
 router = APIRouter(prefix="/api/v1/stats", tags=["stats"])
 
@@ -109,6 +110,7 @@ def get_volume_trend(
 @router.get("/body-parts")
 def get_body_parts(
     period: str = Query("month"),
+    lang: str = Query("zh"),
     db: Session = Depends(get_db),
 ):
     end = date.today()
@@ -135,12 +137,17 @@ def get_body_parts(
         )
         for l in logs:
             bp = l.exercise.body_part if l.exercise else "unknown"
+            if lang != "en":
+                bp = translate_body_part(bp)
             body_count[bp] = body_count.get(bp, 0) + 1
     return {"body_parts": body_count}
 
 
 @router.get("/personal-records", response_model=list[PersonalRecord])
-def get_personal_records(db: Session = Depends(get_db)):
+def get_personal_records(
+    lang: str = Query("zh"),
+    db: Session = Depends(get_db),
+):
     subq = (
         db.query(
             WorkoutLog.exercise_id,
@@ -158,15 +165,27 @@ def get_personal_records(db: Session = Depends(get_db)):
         .limit(15)
         .all()
     )
+    # 批量加载翻译
+    ex_ids = [ex.id for _, ex in rows]
+    tmap = {}
+    if lang != "en" and ex_ids:
+        trs = db.query(ExerciseTranslation).filter(ExerciseTranslation.exercise_id.in_(ex_ids)).all()
+        tmap = {t.exercise_id: t for t in trs}
+
     seen = set()
     result = []
     for log, ex in rows:
         if ex.id in seen:
             continue
         seen.add(ex.id)
+        name = ex.name
+        if lang != "en":
+            tr = tmap.get(ex.id)
+            if tr and tr.name:
+                name = tr.name
         result.append(PersonalRecord(
             exercise_id=ex.id,
-            exercise_name=ex.name,
+            exercise_name=name,
             max_weight_kg=log.weight_kg,
             max_reps=log.reps,
             achieved_at=log.session.date.isoformat() if log.session else "",
@@ -179,6 +198,7 @@ def get_personal_records(db: Session = Depends(get_db)):
 def get_top_exercises(
     period: str = Query("month"),
     limit: int = Query(10),
+    lang: str = Query("zh"),
     db: Session = Depends(get_db),
 ):
     end = date.today()
@@ -210,8 +230,21 @@ def get_top_exercises(
         .limit(limit)
         .all()
     )
+    # 批量加载翻译
+    tmap = {}
+    if lang != "en":
+        ex_ids = [r[0] for r in rows]
+        if ex_ids:
+            trs = db.query(ExerciseTranslation).filter(ExerciseTranslation.exercise_id.in_(ex_ids)).all()
+            tmap = {t.exercise_id: t for t in trs}
+
     return {
         "exercises": [
-            {"exercise_id": r[0], "name": r[1], "count": r[2]} for r in rows
+            {
+                "exercise_id": r[0],
+                "name": (tmap.get(r[0]).name or r[1]) if lang != "en" and tmap.get(r[0]) else r[1],
+                "count": r[2],
+            }
+            for r in rows
         ]
     }

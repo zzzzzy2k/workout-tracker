@@ -30,9 +30,9 @@ export default function StatsPage() {
     setLoading(true);
     Promise.all([
       api.get(`/stats/overview?period=${period}`),
-      api.get("/stats/personal-records"),
-      api.get(`/stats/body-parts?period=${period}`),
-      api.get(`/stats/top-exercises?period=${period}`),
+      api.get("/stats/personal-records?lang=zh"),
+      api.get(`/stats/body-parts?period=${period}&lang=zh`),
+      api.get(`/stats/top-exercises?period=${period}&lang=zh`),
     ])
       .then(([o, p, b, t]) => {
         setOverview(o.data);

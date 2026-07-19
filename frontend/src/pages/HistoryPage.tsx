@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, X, ChevronDown, ChevronUp } from "lucide-react";
 import api from "../api/client";
 
 interface SessionBrief {
@@ -9,6 +9,24 @@ interface SessionBrief {
   exercise_count: number;
   total_sets: number;
   total_volume_kg: number;
+}
+
+interface LogDetail {
+  id: number;
+  exercise_id: string;
+  exercise_name: string;
+  sets: number;
+  reps: number;
+  weight_kg: number;
+  order: number;
+  gif_url: string;
+}
+
+interface SessionDetail {
+  id: number;
+  date: string;
+  note: string | null;
+  logs: LogDetail[];
 }
 
 export default function HistoryPage() {
@@ -23,6 +41,35 @@ export default function HistoryPage() {
   const [searching, setSearching] = useState(false);
   const [searchMode, setSearchMode] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // 详情展开
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [detailData, setDetailData] = useState<SessionDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const detailCache = useRef<Map<number, SessionDetail>>(new Map());
+
+  const toggleDetail = async (sessionId: number) => {
+    if (expandedId === sessionId) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(sessionId);
+    // 缓存命中直接复用
+    if (detailCache.current.has(sessionId)) {
+      setDetailData(detailCache.current.get(sessionId)!);
+      return;
+    }
+    setDetailLoading(true);
+    try {
+      const { data } = await api.get(`/workouts/${sessionId}?lang=zh`);
+      detailCache.current.set(sessionId, data);
+      setDetailData(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -131,17 +178,28 @@ export default function HistoryPage() {
           )}
 
           {!searching && searchResults.map((s) => (
-            <div key={s.id} className="card space-y-2 mb-3">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-sm text-cocoa-900">{s.date}</span>
-                <span className="text-xs text-cocoa-400">{s.exercise_count} 动作 · {s.total_sets} 组</span>
-              </div>
-              {s.note && (
-                <p className="text-sm text-cocoa-600 leading-relaxed bg-tangerine-50/80 rounded-xl px-3 py-2.5">
-                  "{s.note.length > 120 ? s.note.slice(0, 120) + "..." : s.note}"
-                </p>
+            <div key={s.id} className="mb-3">
+              <button
+                onClick={() => toggleDetail(s.id)}
+                className="card space-y-2 w-full text-left cursor-pointer hover:shadow-md transition-shadow relative"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-cocoa-900">{s.date}</span>
+                  <span className="text-xs text-cocoa-400">{s.exercise_count} 动作 · {s.total_sets} 组</span>
+                </div>
+                {s.note && (
+                  <p className="text-sm text-cocoa-600 leading-relaxed bg-tangerine-50/80 rounded-xl px-3 py-2.5">
+                    "{s.note.length > 120 ? s.note.slice(0, 120) + "..." : s.note}"
+                  </p>
+                )}
+                {!s.note && <p className="text-xs text-cocoa-400">无心得记录</p>}
+                <div className="absolute right-3 top-3 text-cocoa-300">
+                  {expandedId === s.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </div>
+              </button>
+              {expandedId === s.id && (
+                <LogsPanel loading={detailLoading} detail={detailData} />
               )}
-              {!s.note && <p className="text-xs text-cocoa-400">无心得记录</p>}
             </div>
           ))}
         </div>
@@ -205,19 +263,30 @@ export default function HistoryPage() {
                 <p className="text-cocoa-400 text-sm">当日无训练记录</p>
               ) : (
                 daySessions.map((s) => (
-                  <div key={s.id} className="card space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-sm text-cocoa-900">训练记录</span>
-                      <div className="flex gap-4 text-xs text-cocoa-500">
-                        <span>{s.exercise_count} 动作</span>
-                        <span>{s.total_sets} 组</span>
-                        <span>{s.total_volume_kg.toLocaleString()} kg</span>
+                  <div key={s.id}>
+                    <button
+                      onClick={() => toggleDetail(s.id)}
+                      className="card space-y-1.5 w-full text-left cursor-pointer hover:shadow-md transition-shadow relative"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm text-cocoa-900">训练记录</span>
+                        <div className="flex gap-4 text-xs text-cocoa-500">
+                          <span>{s.exercise_count} 动作</span>
+                          <span>{s.total_sets} 组</span>
+                          <span>{s.total_volume_kg.toLocaleString()} kg</span>
+                        </div>
                       </div>
-                    </div>
-                    {s.note && (
-                      <p className="text-xs text-cocoa-500 leading-relaxed italic mt-1">
-                        "{s.note.length > 80 ? s.note.slice(0, 80) + "..." : s.note}"
-                      </p>
+                      {s.note && (
+                        <p className="text-xs text-cocoa-500 leading-relaxed italic mt-1">
+                          "{s.note.length > 80 ? s.note.slice(0, 80) + "..." : s.note}"
+                        </p>
+                      )}
+                      <div className="absolute right-3 top-3 text-cocoa-300">
+                        {expandedId === s.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </div>
+                    </button>
+                    {expandedId === s.id && (
+                      <LogsPanel loading={detailLoading} detail={detailData} />
                     )}
                   </div>
                 ))
@@ -225,6 +294,49 @@ export default function HistoryPage() {
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+function LogsPanel({ loading, detail }: { loading: boolean; detail: SessionDetail | null }) {
+  if (loading) {
+    return (
+      <div className="card mt-1 flex justify-center py-4">
+        <div className="w-4 h-4 border-2 border-tangerine-300 border-t-tangerine-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (!detail || !detail.logs.length) {
+    return (
+      <div className="card mt-1">
+        <p className="text-xs text-cocoa-400 text-center py-2">无练习记录</p>
+      </div>
+    );
+  }
+  return (
+    <div className="card mt-1 space-y-2">
+      {detail.logs.map((log, i) => (
+        <div key={log.id} className="flex items-center gap-3">
+          <span className="w-5 text-xs font-bold text-tangerine-400 text-right">{i + 1}</span>
+          {log.gif_url && (
+            <img src={log.gif_url} alt={log.exercise_name}
+                 className="w-8 h-8 rounded-lg object-cover border border-tangerine-100" />
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-cocoa-900 truncate">{log.exercise_name}</p>
+          </div>
+          <div className="flex gap-3 text-xs text-cocoa-500 font-mono whitespace-nowrap">
+            <span>{log.sets}组</span>
+            <span>{log.reps}次</span>
+            <span className="text-cocoa-700 font-semibold">{log.weight_kg}kg</span>
+          </div>
+        </div>
+      ))}
+      {detail.note && (
+        <div className="border-t border-tangerine-100 pt-2 mt-2">
+          <p className="text-xs text-cocoa-500 italic">💬 {detail.note}</p>
+        </div>
       )}
     </div>
   );
