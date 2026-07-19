@@ -18,9 +18,15 @@ function SideNav() {
   const location = useLocation();
   return (
     <nav className="hidden md:flex flex-col gap-1 w-56 py-6 px-3 flex-shrink-0">
-      <h1 className="text-lg font-bold text-cocoa-900 px-4 mb-4 tracking-tight">
-        Workout Tracker
-      </h1>
+      <div className="flex items-center gap-3 px-4 mb-4">
+        <img src="/icon.svg" alt="logo" className="w-9 h-9 rounded-2xl shadow-tangerine" />
+        <div>
+          <h1 className="text-base font-bold text-cocoa-900 tracking-tight leading-tight">
+            Workout Tracker
+          </h1>
+          <p className="text-xs text-cocoa-400">记录每一次汗水</p>
+        </div>
+      </div>
       {navItems.map(({ to, icon: Icon, label }) => {
         const active = location.pathname === to || (to !== "/" && location.pathname.startsWith(to));
         return (
@@ -71,10 +77,13 @@ function AppLayout() {
   return (
     <div className="h-full flex flex-col md:flex-row">
       <SideNav />
-      <header className="md:hidden sticky top-0 z-10 bg-cream/90 backdrop-blur-sm border-b border-tangerine-100/50 px-5 py-4 max-w-md mx-auto w-full">
-        <h1 className="text-lg font-bold text-cocoa-900 tracking-tight">
-          Workout Tracker
-        </h1>
+      <header className="md:hidden sticky top-0 z-10 bg-cream/90 backdrop-blur-sm border-b border-tangerine-100/50 px-5 py-3 max-w-md mx-auto w-full">
+        <div className="flex items-center gap-2.5">
+          <img src="/icon.svg" alt="logo" className="w-7 h-7 rounded-xl shadow-tangerine" />
+          <h1 className="text-base font-bold text-cocoa-900 tracking-tight">
+            Workout Tracker
+          </h1>
+        </div>
       </header>
       <main className="flex-1 overflow-y-auto px-4 py-4 pb-20 md:pb-4 md:pl-0 md:pr-8 md:py-6 w-full">
         <div className="max-w-md md:max-w-4xl mx-auto">

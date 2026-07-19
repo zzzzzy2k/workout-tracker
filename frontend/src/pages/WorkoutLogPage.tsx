@@ -105,12 +105,31 @@ export default function WorkoutLogPage() {
       </div>
 
       {sessions.length === 0 && (
-        <div className="card text-center py-10 space-y-3">
-          <Dumbbell size={40} className="text-tangerine-300 mx-auto" />
-          <p className="text-cocoa-400 text-sm">今天还没有训练记录</p>
-          <div className="flex gap-2 justify-center">
-            <button onClick={createSession} className="btn-primary text-sm">手动添加动作</button>
+        <div className="card text-center py-10 space-y-4">
+          <img src="/icon.svg" alt="logo" className="w-20 h-20 rounded-[28px] shadow-tangerine mx-auto" />
+          <div>
+            <h3 className="font-bold text-cocoa-900 text-base mb-1">开始你的训练之旅</h3>
+            <p className="text-cocoa-400 text-sm max-w-xs mx-auto leading-relaxed">
+              点击「新建训练」开始今天的记录，每完成一组就随手记下。积少成多，回头看都是你的勋章。
+            </p>
+          </div>
+          <div className="flex gap-2 justify-center pt-1">
+            <button onClick={createSession} className="btn-primary text-sm">创建今日训练</button>
             <Link to="/templates" className="btn-secondary text-sm">从模板开始</Link>
+          </div>
+          <div className="pt-3 border-t border-tangerine-100/50 grid grid-cols-3 gap-3 text-center">
+            <div>
+              <p className="text-sm font-bold text-tangerine-500">1,324</p>
+              <p className="text-xs text-cocoa-400">健身动作库</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-tangerine-500">10</p>
+              <p className="text-xs text-cocoa-400">语言教学</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-tangerine-500">图+文</p>
+              <p className="text-xs text-cocoa-400">动画演示</p>
+            </div>
           </div>
         </div>
       )}
