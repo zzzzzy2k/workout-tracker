@@ -1,8 +1,11 @@
 import json
 import os
 from .database import engine, Base, SessionLocal
-from .models import Exercise
-
+from .models import Exercise, ExerciseTranslation
+from .translate import (
+    translate_name, translate_body_part, translate_equipment,
+    translate_muscle, translate_muscle_list,
+)
 
 EXERCISES_JSON = r"D:\Data\Study\Project\exercises-dataset\data\exercises.json"
 
@@ -30,6 +33,36 @@ def seed_exercises():
                 media_id=e.get("media_id", ""),
                 image_path=e.get("image", ""),
                 gif_path=e.get("gif_url", ""),
+            ))
+        db.add_all(records)
+        db.commit()
+        return len(records)
+    finally:
+        db.close()
+
+
+def seed_translations():
+    """把英文动作名 + 分类标签翻成中文，写入 exercise_translations 表。"""
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        if db.query(ExerciseTranslation).count() > 0:
+            return db.query(ExerciseTranslation).count()
+        with open(EXERCISES_JSON, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        records = []
+        for e in data:
+            records.append(ExerciseTranslation(
+                exercise_id=e["id"],
+                name=translate_name(e["name"]),
+                body_part=translate_body_part(e["body_part"]),
+                equipment=translate_equipment(e["equipment"]),
+                target=translate_muscle(e.get("target", "")),
+                muscle_group=translate_muscle(e.get("muscle_group", "")),
+                secondary_muscles=json.dumps(
+                    translate_muscle_list(e.get("secondary_muscles", [])),
+                    ensure_ascii=False,
+                ),
             ))
         db.add_all(records)
         db.commit()

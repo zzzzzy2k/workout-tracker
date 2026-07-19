@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .database import Base, engine
-from .seed import seed_exercises
+from .seed import seed_exercises, seed_translations
 from .routers import exercises, workouts, templates, stats
 
 
@@ -12,6 +12,8 @@ from .routers import exercises, workouts, templates, stats
 async def lifespan(app: FastAPI):
     count = seed_exercises()
     print(f"Exercises seeded: {count}")
+    tcount = seed_translations()
+    print(f"Translations seeded: {tcount}")
     yield
 
 

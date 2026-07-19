@@ -35,8 +35,8 @@ export default function ExercisesPage() {
   const [search, setSearch] = useState("");
   const [selectedBodyPart, setSelectedBodyPart] = useState("");
   const [selectedEquipment, setSelectedEquipment] = useState("");
-  const [bodyParts, setBodyParts] = useState<string[]>([]);
-  const [equipmentList, setEquipmentList] = useState<string[]>([]);
+  const [bodyPartOptions, setBodyPartOptions] = useState<{ value: string; label: string }[]>([]);
+  const [equipmentOptions, setEquipmentOptions] = useState<{ value: string; label: string }[]>([]);
 
   const [selectedExercise, setSelectedExercise] = useState<ExerciseDetail | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -46,8 +46,18 @@ export default function ExercisesPage() {
   const fetchFilters = useCallback(async () => {
     try {
       const { data } = await api.get("/exercises/filters");
-      setBodyParts(data.body_parts);
-      setEquipmentList(data.equipment);
+      setBodyPartOptions(
+        (data.body_parts as string[]).map((v, i) => ({
+          value: v,
+          label: (data.body_parts_zh as string[])[i] ?? v,
+        }))
+      );
+      setEquipmentOptions(
+        (data.equipment as string[]).map((v, i) => ({
+          value: v,
+          label: (data.equipment_zh as string[])[i] ?? v,
+        }))
+      );
     } catch (err) {
       console.error("Failed to load filters", err);
     }
@@ -56,7 +66,7 @@ export default function ExercisesPage() {
   const fetchExercises = useCallback(async (pageNum: number, reset: boolean) => {
     setLoading(true);
     try {
-      const params: Record<string, string | number> = { page: pageNum, size: 24 };
+      const params: Record<string, string | number> = { page: pageNum, size: 24, lang: "zh" };
       if (selectedBodyPart) params.body_part = selectedBodyPart;
       if (selectedEquipment) params.equipment = selectedEquipment;
       if (search.trim()) params.search = search.trim();
@@ -157,8 +167,8 @@ export default function ExercisesPage() {
           onBodyPartChange={setSelectedBodyPart}
           selectedEquipment={selectedEquipment}
           onEquipmentChange={setSelectedEquipment}
-          bodyParts={bodyParts}
-          equipment={equipmentList}
+          bodyPartOptions={bodyPartOptions}
+          equipmentOptions={equipmentOptions}
         />
       )}
 

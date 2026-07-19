@@ -42,6 +42,8 @@ class ExerciseListResponse(BaseModel):
 class FilterOptions(BaseModel):
     body_parts: list[str]
     equipment: list[str]
+    body_parts_zh: list[str] = []
+    equipment_zh: list[str] = []
 
 
 # ---- Workout ----

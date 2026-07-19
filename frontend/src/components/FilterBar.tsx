@@ -1,5 +1,10 @@
 import { Search } from "lucide-react";
 
+interface Option {
+  value: string;
+  label: string;
+}
+
 interface FilterBarProps {
   search: string;
   onSearchChange: (v: string) => void;
@@ -7,15 +12,32 @@ interface FilterBarProps {
   onBodyPartChange: (v: string) => void;
   selectedEquipment: string;
   onEquipmentChange: (v: string) => void;
-  bodyParts: string[];
-  equipment: string[];
+  bodyPartOptions: Option[];
+  equipmentOptions: Option[];
+}
+
+function Pill({
+  active, children, onClick,
+}: { active: boolean; children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition-all ${
+        active
+          ? "bg-tangerine-500 text-white shadow-sm"
+          : "bg-white text-cocoa-500 border border-tangerine-100/50 hover:bg-tangerine-50"
+      }`}
+    >
+      {children}
+    </button>
+  );
 }
 
 export default function FilterBar({
   search, onSearchChange,
   selectedBodyPart, onBodyPartChange,
   selectedEquipment, onEquipmentChange,
-  bodyParts, equipment,
+  bodyPartOptions, equipmentOptions,
 }: FilterBarProps) {
   return (
     <div className="space-y-3">
@@ -32,29 +54,30 @@ export default function FilterBar({
                      transition-all"
         />
       </div>
+
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        <button
-          onClick={() => onBodyPartChange("")}
-          className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition-all ${
-            !selectedBodyPart
-              ? "bg-tangerine-500 text-white shadow-sm"
-              : "bg-white text-cocoa-500 border border-tangerine-100/50 hover:bg-tangerine-50"
-          }`}
-        >
-          全部
-        </button>
-        {bodyParts.map((bp) => (
-          <button
-            key={bp}
-            onClick={() => onBodyPartChange(bp === selectedBodyPart ? "" : bp)}
-            className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition-all ${
-              selectedBodyPart === bp
-                ? "bg-tangerine-500 text-white shadow-sm"
-                : "bg-white text-cocoa-500 border border-tangerine-100/50 hover:bg-tangerine-50"
-            }`}
+        <Pill active={!selectedBodyPart} onClick={() => onBodyPartChange("")}>全部</Pill>
+        {bodyPartOptions.map((opt) => (
+          <Pill
+            key={opt.value}
+            active={selectedBodyPart === opt.value}
+            onClick={() => onBodyPartChange(selectedBodyPart === opt.value ? "" : opt.value)}
           >
-            {bp}
-          </button>
+            {opt.label}
+          </Pill>
+        ))}
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <Pill active={!selectedEquipment} onClick={() => onEquipmentChange("")}>所有器械</Pill>
+        {equipmentOptions.map((opt) => (
+          <Pill
+            key={opt.value}
+            active={selectedEquipment === opt.value}
+            onClick={() => onEquipmentChange(selectedEquipment === opt.value ? "" : opt.value)}
+          >
+            {opt.label}
+          </Pill>
         ))}
       </div>
     </div>

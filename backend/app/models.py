@@ -21,6 +21,19 @@ class Exercise(Base):
     gif_path = Column(String, nullable=False)
 
 
+class ExerciseTranslation(Base):
+    """动作中文翻译表（1:1 对应 exercises），种子时一次性生成。"""
+    __tablename__ = "exercise_translations"
+
+    exercise_id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)        # 中文动作名
+    body_part = Column(String)                   # 中文部位
+    equipment = Column(String)                   # 中文器械
+    target = Column(String)                      # 中文目标肌群
+    muscle_group = Column(String)                # 中文主协同肌群
+    secondary_muscles = Column(Text)             # JSON 中文辅助肌群数组
+
+
 class WorkoutSession(Base):
     __tablename__ = "workout_sessions"
 
