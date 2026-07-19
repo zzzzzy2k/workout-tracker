@@ -1,5 +1,7 @@
 # Workout Tracker
 
+> English | [中文](./README.zh.md)
+
 A sweet, orange-themed daily workout logging app. Track every rep, every set, every drop of sweat.
 
 Built on [exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset) — 1,324 exercises with GIF animations & instructions in 10 languages.
