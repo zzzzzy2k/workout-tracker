@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Plus, Trash2, PenLine } from "lucide-react";
+import { Plus, Trash2, PenLine, Save, Check } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/client";
 
@@ -199,30 +199,82 @@ function DiaryNote({ sessionId, initialNote, onSaved }: {
   onSaved: () => void;
 }) {
   const [note, setNote] = useState(initialNote);
-  const [dirty, setDirty] = useState(false);
+  const [autoSave, setAutoSave] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const lastNoteRef = useRef(initialNote);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const doSave = async (content: string) => {
+    setSaving(true);
+    try {
+      await api.put(`/workouts/${sessionId}`, { note: content });
+      lastNoteRef.current = content;
+      setSaving(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      onSaved();
+    } catch (err) {
+      console.error(err);
+      setSaving(false);
+    }
+  };
 
   const handleChange = (val: string) => {
     setNote(val);
-    setDirty(true);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        await api.put(`/workouts/${sessionId}`, { note: val });
-        setDirty(false);
-        onSaved();
-      } catch (err) {
-        console.error(err);
-      }
-    }, 800);
+    setSaved(false);
+    if (autoSave) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => doSave(val), 800);
+    }
   };
+
+  const handleManualSave = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    doSave(note);
+  };
+
+  const isDirty = note !== lastNoteRef.current;
 
   return (
     <div className="pt-2 border-t border-tangerine-100/50">
-      <div className="flex items-center gap-1.5 mb-2">
-        <PenLine size={12} className="text-cocoa-400" />
-        <span className="text-xs text-cocoa-400 font-medium">训练心得</span>
-        {dirty && <span className="text-xs text-tangerine-400 animate-pulse">保存中...</span>}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <PenLine size={12} className="text-cocoa-400" />
+          <span className="text-xs text-cocoa-400 font-medium">训练心得</span>
+          {autoSave && saving && (
+            <span className="text-xs text-tangerine-400 animate-pulse">保存中...</span>
+          )}
+          {autoSave && saved && (
+            <span className="text-xs text-lime flex items-center gap-0.5"><Check size={10} /> 已保存</span>
+          )}
+          {!autoSave && isDirty && (
+            <span className="text-xs text-flame">未保存</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAutoSave(!autoSave)}
+            className="text-xs px-2 py-0.5 rounded-lg border transition-colors"
+            style={{
+              color: autoSave ? "var(--color-success)" : "var(--color-text-muted)",
+              borderColor: autoSave ? "var(--color-success)" : "var(--color-border-tertiary)",
+              backgroundColor: autoSave ? "#F0F7E6" : "transparent",
+            }}
+          >
+            {autoSave ? "自动保存" : "手动保存"}
+          </button>
+          {!autoSave && isDirty && (
+            <button
+              onClick={handleManualSave}
+              disabled={saving}
+              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-tangerine-500 text-white font-medium hover:bg-tangerine-600 transition-colors disabled:opacity-50"
+            >
+              <Save size={11} />
+              {saving ? "保存中..." : "保存"}
+            </button>
+          )}
+        </div>
       </div>
       <textarea
         placeholder="今天感觉怎么样？有什么想记录的..."
